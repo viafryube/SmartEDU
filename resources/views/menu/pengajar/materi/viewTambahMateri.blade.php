@@ -93,7 +93,7 @@
     </div>
 
     {{-- Script yang dibutuhkan --}}
-<script src="https://cdn.tiny.cloud/1/1dcn6y89gj7jtaawstjd7qt5nddl47py62pg67ihnxq6vyoa/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>;
+<script src="https://cdn.tiny.cloud/1/e966shkvid62orfohcf6p25two1e2ypco5llmtl7xzk0o9g6/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>;
     <script src="{{ url('/asset/js/rich-text-editor.js') }}"></script>
     <script>
         $(document).ready(function() {
