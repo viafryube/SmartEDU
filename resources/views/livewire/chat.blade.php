@@ -1,4 +1,4 @@
-<div>
+<div wire:poll.3s>
     <div class="row">
         <div class="col-md-6 col-lg-5 col-xl-4 mb-4 mb-md-0">
             <div class="p-3">
