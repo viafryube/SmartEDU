@@ -81,13 +81,15 @@ class Chat extends Component // Mendefinisikan kelas Chat yang merupakan turunan
             $this->loadMessages(); // Memuat pesan-pesan
             $this->messageText = ''; // Mengosongkan teks pesan
             $this->dispatch('$refresh');
+            $this->loadUnreadMessagesCount();
         }
     }
 
     public function render()
     {
         $this->loadUsers(); // agar pencarian selalu update otomatis
-    return view('livewire.chat', ['users' => $this->users]);
+        $this->loadUnreadMessagesCount();
+        return view('livewire.chat', ['users' => $this->users]);
     }
 
 
