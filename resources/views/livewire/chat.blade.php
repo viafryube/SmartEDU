@@ -54,7 +54,7 @@
                         <div>
                             <p class="small p-2 ms-3 mb-1 rounded-3 {{ $message->from_user_id == Auth::id() ? 'bg-primary text-white' : 'bg-light text-dark' }}"
                             style=" word-break: break-word; overflow-wrap: break-word;">
-                                {{ $message->message }}
+                                {!! nl2br(e($message->message)) !!}
                             </p>
                             <p class="small ms-3 mb-3 rounded-3 text-muted">{{ $message->created_at->format('h:i A | M d') }}</p>
                         </div>
