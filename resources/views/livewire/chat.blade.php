@@ -2,6 +2,7 @@
     <div class="row">
         <div class="col-md-6 col-lg-5 col-xl-4 mb-4 mb-md-0">
             <div class="p-3">
+                <input type="text" wire:model="search" class="form-control mb-3" placeholder="Cari nama user...">
                 <div style="position: relative; height: 400px; overflow-y: scroll">
                     <ul class="list-unstyled mb-0">
                         @foreach ($users as $user)
@@ -63,9 +64,39 @@
 
             <div class="text-muted d-flex justify-content-start align-items-center pe-3 pt-3 mt-2">
                 <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava6-bg.webp" alt="avatar 3" style="width: 40px; height: 100%;">
-                <input type="text" class="form-control form-control-lg" wire:model="messageText" placeholder="Type message">
+                {{-- <input type="text" class="form-control form-control-lg" wire:model="messageText" placeholder="Type message"> --}}
+                <!-- Textarea -->
+<textarea
+    class="form-control form-control-lg"
+    wire:model="messageText"
+    id="messageInput"
+    placeholder="Type message"
+    rows="1"
+    style="resize: none; overflow:hidden"
+    onkeydown="checkEnter(event)"
+></textarea>
+
                 <a class="ms-3" href="#" wire:click.prevent="sendMessage"><button class="btn"><i class="fas fa-paper-plane"></i></button></a>
             </div>
         </div>
     </div>
 </div>
+<script>
+    function checkEnter(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault(); // Mencegah newline
+            @this.call('sendMessage'); // Memanggil Livewire method
+        }
+    }
+</script>
+
+<script>
+    document.addEventListener('livewire:load', function () {
+        Livewire.hook('message.processed', (message, component) => {
+            const chatContainer = document.querySelector('[wire\\:poll]');
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        });
+    });
+</script>
