@@ -2,19 +2,18 @@
     <div class="row">
         <div class="col-md-6 col-lg-5 col-xl-4 mb-4 mb-md-0">
             <div class="p-3">
-                <input type="text" wire:model="search" class="form-control mb-3" placeholder="Cari nama user...">
-                <div style="position: relative; height: 400px; overflow-y: scroll">
+                <input type="text" wire:model.debounce.500ms="search" class="form-control mb-3" placeholder="Cari nama user...">
+                <div class="pt-3 pe-3" style="position: relative; height: 400px; overflow-y: scroll;" wire:poll.3s>
                     <ul class="list-unstyled mb-0">
-                        @foreach ($users as $user)
+                        @foreach ($this->users as $user)
                         @php
-                            $latestMessage = App\Models\Message::where(function($query) use ($user) {
-                                $query->where('from_user_id', $user->id)
-                                      ->where('to_user_id', Auth::id());
-                            })->orWhere(function($query) use ($user) {
-                                $query->where('from_user_id', Auth::id())
-                                      ->where('to_user_id', $user->id);
-                            })->latest()->first();
+                            $sent = $user->sentMessages->first();
+                            $received = $user->receivedMessages->first();
+                            $latestMessage = $sent && $received
+                                ? ($sent->created_at > $received->created_at ? $sent : $received)
+                                : ($sent ?: $received);
                         @endphp
+
                         <li class="p-2 border-bottom">
                             <a href="#" wire:click.prevent="selectUser({{ $user->id }})" class="d-flex justify-content-between">
                                 <div class="d-flex flex-row">
@@ -37,6 +36,9 @@
                             </a>
                         </li>
                         @endforeach
+                        @if ($this->users->isEmpty())
+                            <li class="p-2 text-muted text-center">Tidak ada user ditemukan.</li>
+                        @endif
                     </ul>
                 </div>
             </div>
