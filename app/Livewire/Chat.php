@@ -5,6 +5,7 @@ use Livewire\Component; // Menggunakan kelas Livewire Component
 use App\Models\Message; // Menggunakan model Message
 use App\Models\User; // Menggunakan model User
 use Illuminate\Support\Facades\Auth as AuthChat; // Menggunakan fasad Auth dari Laravel
+use Illuminate\Support\Facades\Log; 
 
 class Chat extends Component // Mendefinisikan kelas Chat yang merupakan turunan dari Livewire Component
 {
@@ -23,6 +24,13 @@ class Chat extends Component // Mendefinisikan kelas Chat yang merupakan turunan
         $this->loadMessages(); // Memuat pesan-pesan
         $this->loadUnreadMessagesCount(); // Memuat jumlah pesan yang belum dibaca
         $this->loadUsers();
+        $firstUser = User::where('id', '!=', AuthChat::id())->first();
+        if ($firstUser) {
+            $this->selectedUserId = $firstUser->id;
+            $this->selectUser($firstUser->id);
+        }
+
+        $this->loadUnreadMessagesCount();
     }
 
     public function loadMessages() // Method untuk memuat pesan-pesan
@@ -72,37 +80,50 @@ class Chat extends Component // Mendefinisikan kelas Chat yang merupakan turunan
 
             $this->loadMessages(); // Memuat pesan-pesan
             $this->messageText = ''; // Mengosongkan teks pesan
+            $this->dispatch('$refresh');
         }
     }
 
-    public function render() // Method untuk merender tampilan
+    public function render()
     {
-        return view('livewire.chat', [
-            'users' => $this->users,
-        ]);
+        $this->loadUsers(); // agar pencarian selalu update otomatis
+    return view('livewire.chat', ['users' => $this->users]);
     }
+
 
     public function updatedSearch($value)
     {
+         // log ke file
+        logger('Search diperbarui', ['value' => $value]);
+
+        // kirim ke browser
+        $this->dispatch('search-updated', value: $value);
+        Log::info('Search changed to: ' . $value);  
         $this->loadUsers();
     }
 
+
     public function loadUsers()
     {
-        $this->users = User::where('id', '!=', AuthChat::id())
+        $authId = AuthChat::id();
+
+        $users = User::where('id', '!=', $authId)
             ->where('name', 'like', '%' . $this->search . '%')
-            ->get()
-            ->sortByDesc(function ($user) {
-                return Message::where(function ($query) use ($user) {
-                        $query->where('from_user_id', $user->id)
-                            ->where('to_user_id', AuthChat::id());
-                    })->orWhere(function ($query) use ($user) {
-                        $query->where('from_user_id', AuthChat::id())
-                            ->where('to_user_id', $user->id);
-                    })->latest()->value('created_at');
-            })->values();
-    }
+            ->with([
+                'sentMessages' => function ($query) use ($authId) {
+                    $query->where('to_user_id', $authId)->latest();
+                },
+                'receivedMessages' => function ($query) use ($authId) {
+                    $query->where('from_user_id', $authId)->latest();
+                }
+            ])
+            ->get();
 
-
+        $this->users = $users->sortByDesc(function ($user) {
+            $latestSent = $user->sentMessages->first()?->created_at;
+            $latestReceived = $user->receivedMessages->first()?->created_at;
+            return max($latestSent, $latestReceived);
+        })->values();
+        
     }
-    
+}
