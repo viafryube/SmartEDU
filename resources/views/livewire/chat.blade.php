@@ -52,7 +52,8 @@
                             <img src="{{ $message->fromUser->gambar ? asset('storage/file/img-upload/' . $message->fromUser->gambar) : 'https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava6-bg.webp' }}" alt="avatar 1" style="width: 45px; height: 100%; border-radius: 50%;">
                         @endif
                         <div>
-                            <p class="small p-2 ms-3 mb-1 rounded-3 {{ $message->from_user_id == Auth::id() ? 'bg-primary text-white' : 'bg-light text-dark' }}">
+                            <p class="small p-2 ms-3 mb-1 rounded-3 {{ $message->from_user_id == Auth::id() ? 'bg-primary text-white' : 'bg-light text-dark' }}"
+                            style=" word-break: break-word; overflow-wrap: break-word;">
                                 {{ $message->message }}
                             </p>
                             <p class="small ms-3 mb-3 rounded-3 text-muted">{{ $message->created_at->format('h:i A | M d') }}</p>
