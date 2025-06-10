@@ -4,7 +4,7 @@ namespace App\Livewire; // Mendefinisikan namespace untuk kelas Chat
 use Livewire\Component; // Menggunakan kelas Livewire Component
 use App\Models\Message; // Menggunakan model Message
 use App\Models\User; // Menggunakan model User
-use Illuminate\Support\Facades\Auth; // Menggunakan fasad Auth dari Laravel
+use Illuminate\Support\Facades\Auth as AuthChat; // Menggunakan fasad Auth dari Laravel
 
 class Chat extends Component // Mendefinisikan kelas Chat yang merupakan turunan dari Livewire Component
 {
@@ -13,28 +13,36 @@ class Chat extends Component // Mendefinisikan kelas Chat yang merupakan turunan
     public $selectedUser; // Properti untuk menyimpan user yang dipilih
     public $selectedUserId; // Properti untuk menyimpan ID user yang dipilih
     public $unreadMessagesCount = []; // Properti untuk menyimpan jumlah pesan yang belum dibaca
+    public $users = [];
+    public $search = '';
+
 
     public function mount() // Method yang dipanggil saat komponen di-mount
     {
-        $this->selectedUserId = User::where('id', '!=', Auth::id())->first()->id; // Mengatur selectedUserId dengan ID user selain user yang sedang login
+        $this->selectedUserId = User::where('id', '!=', AuthChat::id())->first()->id; // Mengatur selectedUserId dengan ID user selain user yang sedang login
         $this->loadMessages(); // Memuat pesan-pesan
         $this->loadUnreadMessagesCount(); // Memuat jumlah pesan yang belum dibaca
+        $this->loadUsers();
     }
 
     public function loadMessages() // Method untuk memuat pesan-pesan
     {
-        $this->messages = Message::where(function($query) { // Mengambil pesan dari user yang sedang login ke user yang dipilih
-            $query->where('from_user_id', Auth::id())
-                  ->where('to_user_id', $this->selectedUserId);
-        })->orWhere(function($query) { // Atau mengambil pesan dari user yang dipilih ke user yang sedang login
+        $this->messages = Message::where(function($query) {
+            $query->where('from_user_id', AuthChat::id())
+                ->where('to_user_id', $this->selectedUserId);
+        })->orWhere(function($query) {
             $query->where('from_user_id', $this->selectedUserId)
-                  ->where('to_user_id', Auth::id());
-        })->with('fromUser', 'toUser')->get(); // Mengambil relasi fromUser dan toUser dari pesan-pesan
+                ->where('to_user_id', AuthChat::id());
+        })
+        ->with('fromUser', 'toUser')
+        ->orderBy('created_at', 'asc') // Urut berdasarkan waktu (lama ke baru)
+        ->get();
+
     }
 
     public function loadUnreadMessagesCount() // Method untuk memuat jumlah pesan yang belum dibaca
     {
-        $this->unreadMessagesCount = Message::where('to_user_id', Auth::id()) // Mengambil pesan yang ditujukan ke user yang sedang login dan belum dibaca
+        $this->unreadMessagesCount = Message::where('to_user_id', AuthChat::id()) // Mengambil pesan yang ditujukan ke user yang sedang login dan belum dibaca
                                             ->where('is_read', false)
                                             ->groupBy('from_user_id')
                                             ->selectRaw('from_user_id, COUNT(*) as count')
@@ -47,7 +55,7 @@ class Chat extends Component // Mendefinisikan kelas Chat yang merupakan turunan
         $this->selectedUserId = $userId; // Mengatur selectedUserId dengan ID user yang dipilih
         $this->loadMessages(); // Memuat pesan-pesan
         Message::where('from_user_id', $userId) // Menandai pesan dari user yang dipilih ke user yang sedang login sebagai sudah dibaca
-               ->where('to_user_id', Auth::id())
+               ->where('to_user_id', AuthChat::id())
                ->update(['is_read' => true]);
         $this->loadUnreadMessagesCount(); // Memuat jumlah pesan yang belum dibaca
     }
@@ -56,7 +64,7 @@ class Chat extends Component // Mendefinisikan kelas Chat yang merupakan turunan
     {
         if ($this->messageText != '') { // Jika teks pesan tidak kosong
             Message::create([ // Membuat pesan baru
-                'from_user_id' => Auth::id(),
+                'from_user_id' => AuthChat::id(),
                 'to_user_id' => $this->selectedUserId,
                 'message' => $this->messageText,
                 'is_read' => false,
@@ -69,8 +77,32 @@ class Chat extends Component // Mendefinisikan kelas Chat yang merupakan turunan
 
     public function render() // Method untuk merender tampilan
     {
-        return view('livewire.chat', [ // Mengembalikan tampilan chat dengan data users
-            'users' => User::where('id', '!=', Auth::id())->get(),
+        return view('livewire.chat', [
+            'users' => $this->users,
         ]);
     }
-}
+
+    public function updatedSearch($value)
+    {
+        $this->loadUsers();
+    }
+
+    public function loadUsers()
+    {
+        $this->users = User::where('id', '!=', AuthChat::id())
+            ->where('name', 'like', '%' . $this->search . '%')
+            ->get()
+            ->sortByDesc(function ($user) {
+                return Message::where(function ($query) use ($user) {
+                        $query->where('from_user_id', $user->id)
+                            ->where('to_user_id', AuthChat::id());
+                    })->orWhere(function ($query) use ($user) {
+                        $query->where('from_user_id', AuthChat::id())
+                            ->where('to_user_id', $user->id);
+                    })->latest()->value('created_at');
+            })->values();
+    }
+
+
+    }
+    
